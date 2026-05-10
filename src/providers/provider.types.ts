@@ -1,4 +1,6 @@
-export type ProviderType = "github" | "gitlab";
+import type { ProviderType } from "@/common/types.ts";
+
+export type { ProviderType };
 
 export interface ProviderConfig {
   token: string;
