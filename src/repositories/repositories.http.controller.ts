@@ -28,46 +28,50 @@ export class RepositoryController {
   }
 
   async listAvailable(req: AppRequest) {
-    const { userId, type } = req.params;
-    const repos = await this.trackingService.listAvailableRepos(userId!, type as ProviderType);
+    const userId = req.userId!;
+    const { type } = req.params;
+    const repos = await this.trackingService.listAvailableRepos(userId, type as ProviderType);
     return ApiResponse.ok(repos);
   }
 
   async track(req: AppRequest) {
-    const { userId } = req.params;
+    const userId = req.userId!;
     const dto = req.body as TrackRepoDto;
 
-    const tracked = await this.trackingService.track(userId!, dto);
+    const tracked = await this.trackingService.track(userId, dto);
 
     if (dto.syncMode === "webhook") {
-      await this.webhookService.setupWebhook(userId!, tracked.id);
+      await this.webhookService.setupWebhook(userId, tracked.id);
     }
 
     return ApiResponse.created(mapTrackedRepoToResponse(tracked));
   }
 
   async list(req: AppRequest) {
-    const { userId } = req.params;
-    const repos = await this.trackingService.listTracked(userId!);
+    const userId = req.userId!;
+    const repos = await this.trackingService.listTracked(userId);
     return ApiResponse.ok(repos.map(mapTrackedRepoToResponse));
   }
 
   async get(req: AppRequest) {
-    const { userId, repoId } = req.params;
-    const repo = await this.trackingService.getTracked(userId!, repoId!);
+    const userId = req.userId!;
+    const { repoId } = req.params;
+    const repo = await this.trackingService.getTracked(userId, repoId!);
     return ApiResponse.ok(mapTrackedRepoToResponse(repo));
   }
 
   async untrack(req: AppRequest) {
-    const { userId, repoId } = req.params;
-    await this.webhookService.removeWebhook(userId!, repoId!);
-    await this.trackingService.untrack(userId!, repoId!);
+    const userId = req.userId!;
+    const { repoId } = req.params;
+    await this.webhookService.removeWebhook(userId, repoId!);
+    await this.trackingService.untrack(userId, repoId!);
     return ApiResponse.noContent();
   }
 
   async sync(req: AppRequest) {
-    const { userId, repoId } = req.params;
-    const repo = await this.syncService.triggerSync(userId!, repoId!);
+    const userId = req.userId!;
+    const { repoId } = req.params;
+    const repo = await this.syncService.triggerSync(userId, repoId!);
     return ApiResponse.ok(mapTrackedRepoToResponse(repo));
   }
 

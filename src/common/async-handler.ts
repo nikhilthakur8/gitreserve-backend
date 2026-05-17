@@ -6,6 +6,13 @@ export interface AppRequest {
   body: unknown;
   query: Record<string, string>;
   headers: Record<string, string | string[] | undefined>;
+  userId?: string | undefined;
+  email?: string | undefined;
+}
+
+export interface AuthenticatedRequest extends AppRequest {
+  userId: string;
+  email: string;
 }
 
 type ControllerMethod = (req: AppRequest) => Promise<ApiResponse>;
@@ -25,6 +32,8 @@ export function asyncHandler(fn: ControllerMethod) {
       body: req.body,
       query: req.query as Record<string, string>,
       headers: req.headers as Record<string, string | string[] | undefined>,
+      userId: req.headers["x-user-id"] as string | undefined,
+      email: req.headers["x-user-email"] as string | undefined,
     };
 
     fn(appReq)

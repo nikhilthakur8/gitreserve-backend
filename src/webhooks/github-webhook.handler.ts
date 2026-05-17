@@ -1,18 +1,19 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { createChildLogger } from "@/common/logger.ts";
 import type { RepositoryRepositoryPort } from "@/repositories/db/repository.repository.port.ts";
 import type { IntegrationRepositoryPort } from "@/integrations/db/integration.repository.port.ts";
 import type { OAuthCredentials } from "@/integrations/domain/integration.types.ts";
 import { createProvider } from "@/providers/provider.factory.ts";
-import { SyncError } from "../domain/sync.error.ts";
-import { SyncJobPublisher } from "../queue/sync-job.publisher.ts";
-import { buildSyncJobPayload } from "../queue/sync-job.mapper.ts";
-import { mapGitlabPushEvent } from "./webhook-event.mapper.ts";
-import type { SyncJobContext } from "../domain/sync.types.ts";
-import type { SyncJobRepositoryPort } from "../db/sync-job.repository.port.ts";
+import { SyncError } from "@/sync/domain/sync.error.ts";
+import { SyncJobPublisher } from "@/sync/queue/sync-job.publisher.ts";
+import { buildSyncJobPayload } from "@/sync/queue/sync-job.mapper.ts";
+import { mapGithubPushEvent } from "./webhook-event.mapper.ts";
+import type { SyncJobContext } from "@/sync/domain/sync.types.ts";
+import type { SyncJobRepositoryPort } from "@/sync/db/sync-job.repository.port.ts";
 
-const logger = createChildLogger("gitlab-webhook");
+const logger = createChildLogger("github-webhook");
 
-export class GitlabWebhookHandler {
+export class GithubWebhookHandler {
   constructor(
     private readonly repoRepo: RepositoryRepositoryPort,
     private readonly integrationRepo: IntegrationRepositoryPort,
@@ -25,27 +26,27 @@ export class GitlabWebhookHandler {
     headers: Record<string, string | string[] | undefined>,
     rawBody: Buffer,
   ): Promise<void> {
-    const event = headers["x-gitlab-event"] as string;
-    if (event !== "Push Hook") {
+    const event = headers["x-github-event"] as string;
+    if (event !== "push") {
       logger.debug({ event }, "Ignoring non-push event");
       return;
     }
 
     const repo = await this.repoRepo.findById(trackedRepoId);
-    if (!repo || repo.providerType !== "gitlab") {
+    if (!repo || repo.providerType !== "github") {
       throw new SyncError("Tracked repository not found", "REPO_NOT_TRACKED");
     }
 
     if (repo.webhook.webhookSecret) {
-      const token = headers["x-gitlab-token"] as string;
-      if (token !== repo.webhook.webhookSecret) {
-        throw new SyncError("Invalid webhook token", "INVALID_WEBHOOK");
+      const signature = headers["x-hub-signature-256"] as string;
+      if (!this.verifySignature(rawBody, repo.webhook.webhookSecret, signature)) {
+        throw new SyncError("Invalid webhook signature", "INVALID_WEBHOOK");
       }
     }
 
-    const deliveryId = (headers["x-gitlab-event-uuid"] as string) ?? crypto.randomUUID();
+    const deliveryId = (headers["x-github-delivery"] as string) ?? crypto.randomUUID();
     const payload = JSON.parse(rawBody.toString()) as Record<string, unknown>;
-    const webhookEvent = mapGitlabPushEvent(payload, deliveryId);
+    const webhookEvent = mapGithubPushEvent(payload, deliveryId);
 
     if (webhookEvent.branch !== repo.source.defaultBranch) {
       logger.debug({ branch: webhookEvent.branch, defaultBranch: repo.source.defaultBranch }, "Ignoring non-default branch push");
@@ -58,7 +59,7 @@ export class GitlabWebhookHandler {
     }
 
     const credentials = integration.credentials as OAuthCredentials;
-    const provider = createProvider("gitlab", { token: credentials.accessToken });
+    const provider = createProvider("github", { token: credentials.accessToken });
     const cloneUrl = await provider.getAuthenticatedCloneUrl(repo.source.ownerLogin, repo.source.name);
 
     const context: SyncJobContext = {
@@ -66,7 +67,7 @@ export class GitlabWebhookHandler {
       trackedRepoId,
       integrationId: repo.integrationId,
       storageIntegrationId: repo.storageIntegrationId,
-      providerType: "gitlab",
+      providerType: "github",
       storageType: repo.storageType,
       repoFullName: repo.source.fullName,
       ownerLogin: repo.source.ownerLogin,
@@ -94,7 +95,17 @@ export class GitlabWebhookHandler {
 
     logger.info(
       { trackedRepoId, deliveryId, commitSha: webhookEvent.commitSha },
-      "GitLab push event queued for sync",
+      "GitHub push event queued for sync",
     );
+  }
+
+  private verifySignature(payload: Buffer, secret: string, signature: string): boolean {
+    if (!signature) return false;
+    const expected = `sha256=${createHmac("sha256", secret).update(payload).digest("hex")}`;
+    try {
+      return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    } catch {
+      return false;
+    }
   }
 }

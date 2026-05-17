@@ -8,6 +8,10 @@ import mongoose from "mongoose";
 import { pinoHttp } from "pino-http";
 
 import { createChildLogger } from "@/common/logger.ts";
+import { MongoUserRepository } from "@/auth/db/user.repository.ts";
+import { AuthService } from "@/auth/services/auth.service.ts";
+import { createAuthRouter } from "@/auth/auth.http.router.ts";
+import { authMiddleware } from "@/auth/auth.middleware.ts";
 import { MongoIntegrationRepository } from "@/integrations/db/integration.repository.ts";
 import { createIntegrationRouter } from "@/integrations/integrations.http.router.ts";
 import { MongoRepositoryRepository } from "@/repositories/db/repository.repository.ts";
@@ -15,10 +19,9 @@ import { createRepositoryRouter } from "@/repositories/repositories.http.router.
 import { SyncJobPublisher } from "@/sync/queue/sync-job.publisher.ts";
 import { MongoSyncJobRepository } from "@/sync/db/sync-job.repository.ts";
 import { RepositorySyncService } from "@/sync/services/repository-sync.service.ts";
-import { GithubWebhookHandler } from "@/sync/webhooks/github-webhook.handler.ts";
-import { GitlabWebhookHandler } from "@/sync/webhooks/gitlab-webhook.handler.ts";
 import { SyncController } from "@/sync/sync.http.controller.ts";
 import { createSyncRouter } from "@/sync/sync.http.router.ts";
+import { GithubWebhookHandler, GitlabWebhookHandler, WebhookController, createWebhookRouter } from "@/webhooks/index.ts";
 
 const logger = createChildLogger("api-bootstrap");
 
@@ -26,15 +29,24 @@ async function main() {
   const mongoUrl = process.env["MONGO_URL"] ?? "mongodb://localhost:27017/gitreserve";
   const port = parseInt(process.env["PORT"] ?? "3000", 10);
   const webhookBaseUrl = process.env["WEBHOOK_BASE_URL"] ?? `http://localhost:${port}`;
+  const jwtSecret = process.env["JWT_SECRET"];
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET environment variable is required");
+  }
+  const jwtExpiresIn = parseInt(process.env["JWT_EXPIRES_IN"] ?? "86400", 10);
 
   // Database
   await mongoose.connect(mongoUrl);
   logger.info("Connected to MongoDB");
 
   // Repositories
+  const userRepo = new MongoUserRepository();
   const integrationRepo = new MongoIntegrationRepository();
   const repoRepo = new MongoRepositoryRepository();
   const syncJobRepo = new MongoSyncJobRepository();
+
+  // Auth
+  const authService = new AuthService(userRepo, jwtSecret, jwtExpiresIn);
 
   // SQS Publisher
   const sqsConfig = {
@@ -46,9 +58,12 @@ async function main() {
 
   // Services
   const syncService = new RepositorySyncService(repoRepo, integrationRepo, syncJobRepo, publisher);
+  const syncController = new SyncController(syncService, repoRepo);
+
+  // Webhooks
   const githubWebhook = new GithubWebhookHandler(repoRepo, integrationRepo, syncJobRepo, publisher);
   const gitlabWebhook = new GitlabWebhookHandler(repoRepo, integrationRepo, syncJobRepo, publisher);
-  const syncController = new SyncController(syncService, repoRepo, githubWebhook, gitlabWebhook);
+  const webhookController = new WebhookController(githubWebhook, gitlabWebhook);
 
   // Express
   const app = express();
@@ -67,9 +82,11 @@ async function main() {
   });
 
   // Routes
-  app.use("/api/v1/integrations", createIntegrationRouter(integrationRepo));
-  app.use("/api/v1/repositories", createRepositoryRouter(repoRepo, integrationRepo, webhookBaseUrl));
-  app.use("/api/v1/sync", createSyncRouter(syncController));
+  app.use("/api/v1/auth", createAuthRouter(authService));
+  app.use("/api/v1/integrations", authMiddleware(authService), createIntegrationRouter(integrationRepo));
+  app.use("/api/v1/repositories", authMiddleware(authService), createRepositoryRouter(repoRepo, integrationRepo, webhookBaseUrl));
+  app.use("/api/v1/sync", authMiddleware(authService), createSyncRouter(syncController));
+  app.use("/api/v1/webhooks", createWebhookRouter(webhookController));
 
   // Start
   const server = app.listen(port, () => {

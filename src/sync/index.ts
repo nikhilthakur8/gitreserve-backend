@@ -8,8 +8,6 @@ export { SyncJobPublisher } from "./queue/sync-job.publisher.ts";
 export { SyncJobConsumer } from "./queue/sync-job.consumer.ts";
 export { MongoSyncJobRepository } from "./db/sync-job.repository.ts";
 export type { SyncJobRepositoryPort } from "./db/sync-job.repository.port.ts";
-export { GithubWebhookHandler } from "./webhooks/github-webhook.handler.ts";
-export { GitlabWebhookHandler } from "./webhooks/gitlab-webhook.handler.ts";
 export { SyncError } from "./domain/sync.error.ts";
 export type { SyncErrorCode } from "./domain/sync.error.ts";
 export type { SyncJob, CreateSyncJobInput, SyncJobFilter } from "./domain/sync-job.entity.ts";

@@ -43,27 +43,27 @@ export class IntegrationController {
 
   async connect(req: AppRequest) {
     const handler = this.resolveHandler(req);
-    const { userId } = req.params;
+    const userId = req.userId!;
 
-    const integration = await handler.connect(userId!, req.body);
+    const integration = await handler.connect(userId, req.body);
 
     return ApiResponse.created(mapIntegrationToResponse(integration));
   }
 
   async disconnect(req: AppRequest) {
     const handler = this.resolveHandler(req);
-    const { userId } = req.params;
+    const userId = req.userId!;
 
-    await handler.disconnect(userId!);
+    await handler.disconnect(userId);
 
     return ApiResponse.noContent();
   }
 
   async verify(req: AppRequest) {
     const handler = this.resolveHandler(req);
-    const { userId } = req.params;
+    const userId = req.userId!;
 
-    const integration = await handler.verify(userId!);
+    const integration = await handler.verify(userId);
 
     return ApiResponse.ok(mapIntegrationToResponse(integration));
   }

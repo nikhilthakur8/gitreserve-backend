@@ -17,12 +17,12 @@ export function createRepositoryRouter(
   const controller = new RepositoryController(repoRepo, integrationRepo, webhookBaseUrl);
   const handle = (fn: ControllerMethod) => asyncHandler(fn.bind(controller));
 
-  router.get("/:userId/available/:type", handle(controller.listAvailable));
-  router.post("/:userId/track", handle(controller.track));
-  router.get("/:userId", handle(controller.list));
-  router.get("/:userId/:repoId", handle(controller.get));
-  router.delete("/:userId/:repoId", handle(controller.untrack));
-  router.post("/:userId/:repoId/sync", handle(controller.sync));
+  router.get("/available/:type", handle(controller.listAvailable));
+  router.post("/track", handle(controller.track));
+  router.get("/", handle(controller.list));
+  router.get("/:repoId", handle(controller.get));
+  router.delete("/:repoId", handle(controller.untrack));
+  router.post("/:repoId/sync", handle(controller.sync));
 
   router.use(controller.handleError);
 

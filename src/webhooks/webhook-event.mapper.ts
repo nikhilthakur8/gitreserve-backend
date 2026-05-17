@@ -1,4 +1,4 @@
-import type { WebhookEvent } from "../domain/sync.types.ts";
+import type { WebhookEvent } from "@/sync/domain/sync.types.ts";
 
 export function mapGithubPushEvent(payload: Record<string, unknown>, deliveryId: string): WebhookEvent {
   const repo = payload["repository"] as Record<string, unknown>;
