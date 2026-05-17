@@ -1,3 +1,4 @@
+import axios, { type AxiosInstance, type AxiosRequestConfig, AxiosError } from "axios";
 import { ProviderApiError } from "@/providers/errors/provider.error.ts";
 
 export interface BaseClientConfig {
@@ -6,12 +7,13 @@ export interface BaseClientConfig {
 }
 
 export abstract class BaseClient {
-  private readonly baseUrl: string;
-  private readonly headers: Record<string, string>;
+  protected readonly client: AxiosInstance;
 
   constructor(config: BaseClientConfig) {
-    this.baseUrl = config.baseUrl;
-    this.headers = config.headers;
+    this.client = axios.create({
+      baseURL: config.baseUrl,
+      headers: config.headers,
+    });
   }
 
   protected abstract extractErrorMessage(
@@ -20,69 +22,40 @@ export abstract class BaseClient {
   ): string;
 
   async get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
-    const url = this.buildUrl(path, params);
-    return this.request<T>(url, { method: "GET" });
+    return this.request<T>({ method: "GET", url: path, params });
   }
 
   async post<T>(path: string, body?: unknown): Promise<T> {
-    const url = this.buildUrl(path);
-    const init: RequestInit = { method: "POST" };
-    if (body !== undefined) init.body = JSON.stringify(body);
-    return this.request<T>(url, init);
+    return this.request<T>({ method: "POST", url: path, data: body });
   }
 
   async patch<T>(path: string, body?: unknown): Promise<T> {
-    const url = this.buildUrl(path);
-    const init: RequestInit = { method: "PATCH" };
-    if (body !== undefined) init.body = JSON.stringify(body);
-    return this.request<T>(url, init);
+    return this.request<T>({ method: "PATCH", url: path, data: body });
   }
 
   async put<T>(path: string, body?: unknown): Promise<T> {
-    const url = this.buildUrl(path);
-    const init: RequestInit = { method: "PUT" };
-    if (body !== undefined) init.body = JSON.stringify(body);
-    return this.request<T>(url, init);
+    return this.request<T>({ method: "PUT", url: path, data: body });
   }
 
   async delete(path: string, body?: unknown): Promise<void> {
-    const url = this.buildUrl(path);
-    const init: RequestInit = { method: "DELETE" };
-    if (body !== undefined) init.body = JSON.stringify(body);
-    await this.request(url, init);
+    await this.request<void>({ method: "DELETE", url: path, data: body });
   }
 
-  private buildUrl(path: string, params?: Record<string, string | number>): URL {
-    const url = new URL(`${this.baseUrl}${path}`);
-    if (params) {
-      for (const [key, value] of Object.entries(params)) {
-        url.searchParams.set(key, String(value));
+  private async request<T = void>(config: AxiosRequestConfig): Promise<T> {
+    try {
+      const response = await this.client.request<T>(config);
+
+      if (response.status === 204) {
+        return undefined as T;
       }
-    }
-    return url;
-  }
 
-  private async request<T = void>(url: URL, init: RequestInit): Promise<T> {
-    const response = await fetch(url, {
-      ...init,
-      headers: this.headers,
-    });
-
-    if (!response.ok) {
-      let errorBody: unknown;
-      try {
-        errorBody = await response.json();
-      } catch {
-        errorBody = await response.text();
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        const message = this.extractErrorMessage(error.response.data, error.response.status);
+        throw new ProviderApiError(message, error.response.status, error.response.data);
       }
-      const message = this.extractErrorMessage(errorBody, response.status);
-      throw new ProviderApiError(message, response.status, errorBody);
+      throw error;
     }
-
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return response.json() as Promise<T>;
   }
 }
