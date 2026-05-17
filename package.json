@@ -8,9 +8,12 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outdir=dist --packages=external --sourcemap",
-    "start": "node dist/server.js",
+    "dev": "tsx watch src/bootstrap/api/index.ts",
+    "dev:consumer": "tsx watch src/bootstrap/consumer/index.ts",
+    "build": "esbuild src/bootstrap/api/index.ts --bundle --platform=node --format=esm --outfile=dist/api.js --packages=external --sourcemap",
+    "build:consumer": "esbuild src/bootstrap/consumer/index.ts --bundle --platform=node --format=esm --outfile=dist/consumer.js --packages=external --sourcemap",
+    "start": "node dist/api.js",
+    "start:consumer": "node dist/consumer.js",
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -41,6 +44,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
+    "@aws-sdk/client-sqs": "^3.1048.0",
     "@aws-sdk/lib-storage": "^3.1045.0",
     "axios": "^1.16.1",
     "compression": "^1.8.1",
