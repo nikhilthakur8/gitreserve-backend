@@ -27,7 +27,7 @@ export class RepositoryWebhookService {
       );
     }
 
-    const webhookUrl = `${this.webhookBaseUrl}/webhooks/${repo.providerType}/${repoId}`;
+    const webhookUrl = `${this.webhookBaseUrl}/api/v1/webhooks/${repo.providerType}/${repoId}`;
     const host = new URL(webhookUrl).hostname;
     if (host === "localhost" || host === "127.0.0.1") {
       throw new RepositoryError(
