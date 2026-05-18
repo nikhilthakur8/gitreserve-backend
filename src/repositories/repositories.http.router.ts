@@ -22,6 +22,7 @@ export function createRepositoryRouter(
   router.get("/available/:type", handle(controller.listAvailable));
   router.post("/track", handle(controller.track));
   router.get("/", handle(controller.list));
+  router.get("/:repoId/download", controller.download);
   router.get("/:repoId", handle(controller.get));
   router.patch("/:repoId", handle(controller.update));
   router.delete("/:repoId", handle(controller.untrack));
