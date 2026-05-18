@@ -8,7 +8,7 @@ export class GitlabClient extends BaseClient {
     super({
       baseUrl: `${host}/api/${GITLAB_API_VERSION}`,
       headers: {
-        "PRIVATE-TOKEN": token,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
@@ -17,6 +17,12 @@ export class GitlabClient extends BaseClient {
   protected extractErrorMessage(body: unknown, status: number): string {
     const apiError = body as GitlabApiError | undefined;
     if (typeof apiError?.message === "string") return apiError.message;
+    if (apiError?.message && typeof apiError.message === "object") {
+      const parts = Object.entries(apiError.message)
+        .map(([field, errors]) => `${field} ${errors.join(", ")}`)
+        .join("; ");
+      if (parts) return parts;
+    }
     if (apiError?.error) return apiError.error;
     return `GitLab API error: ${status}`;
   }

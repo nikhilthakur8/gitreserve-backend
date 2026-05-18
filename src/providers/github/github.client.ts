@@ -17,7 +17,9 @@ export class GithubClient extends BaseClient {
 
   protected extractErrorMessage(body: unknown, status: number): string {
     if (typeof body === "object" && body !== null && "message" in body) {
-      return (body as GithubApiError).message;
+      const err = body as GithubApiError;
+      const details = err.errors?.map((e) => e.message).filter(Boolean).join("; ");
+      return details ? `${err.message}: ${details}` : err.message;
     }
     return `GitHub API error: ${status}`;
   }

@@ -37,6 +37,11 @@ export class GithubWebhookHandler {
       throw new SyncError("Tracked repository not found", "REPO_NOT_TRACKED");
     }
 
+    if (repo.status === "paused") {
+      logger.info({ trackedRepoId }, "Skipping webhook — repository is paused");
+      return;
+    }
+
     if (repo.webhook.webhookSecret) {
       const signature = headers["x-hub-signature-256"] as string;
       if (!this.verifySignature(rawBody, repo.webhook.webhookSecret, signature)) {

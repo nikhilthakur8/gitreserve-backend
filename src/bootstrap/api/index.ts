@@ -53,6 +53,8 @@ async function main() {
     queueUrl: process.env["SQS_QUEUE_URL"] ?? "",
     region: process.env["AWS_REGION"] ?? "us-east-1",
     ...(process.env["SQS_ENDPOINT"] ? { endpoint: process.env["SQS_ENDPOINT"] } : {}),
+    ...(process.env["AWS_ACCESS_KEY_ID"] ? { accessKeyId: process.env["AWS_ACCESS_KEY_ID"] } : {}),
+    ...(process.env["AWS_SECRET_ACCESS_KEY"] ? { secretAccessKey: process.env["AWS_SECRET_ACCESS_KEY"] } : {}),
   };
   const publisher = new SyncJobPublisher(sqsConfig);
 
@@ -84,7 +86,7 @@ async function main() {
   // Routes
   app.use("/api/v1/auth", createAuthRouter(authService));
   app.use("/api/v1/integrations", authMiddleware(authService), createIntegrationRouter(integrationRepo));
-  app.use("/api/v1/repositories", authMiddleware(authService), createRepositoryRouter(repoRepo, integrationRepo, webhookBaseUrl));
+  app.use("/api/v1/repositories", authMiddleware(authService), createRepositoryRouter(repoRepo, integrationRepo, webhookBaseUrl, syncService));
   app.use("/api/v1/sync", authMiddleware(authService), createSyncRouter(syncController));
   app.use("/api/v1/webhooks", createWebhookRouter(webhookController));
 

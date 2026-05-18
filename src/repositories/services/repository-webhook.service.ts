@@ -27,6 +27,15 @@ export class RepositoryWebhookService {
       );
     }
 
+    const webhookUrl = `${this.webhookBaseUrl}/webhooks/${repo.providerType}/${repoId}`;
+    const host = new URL(webhookUrl).hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      throw new RepositoryError(
+        "WEBHOOK_BASE_URL must be a publicly reachable URL. Set the WEBHOOK_BASE_URL env var to a public URL (e.g. via ngrok or cloudflare tunnel).",
+        "WEBHOOK_SETUP_FAILED",
+      );
+    }
+
     const credentials = integration.credentials as OAuthCredentials;
     const provider = createProvider(repo.providerType, { token: credentials.accessToken });
     const secret = crypto.randomUUID();
@@ -36,7 +45,7 @@ export class RepositoryWebhookService {
         repo.source.ownerLogin,
         repo.source.name,
         {
-          url: `${this.webhookBaseUrl}/webhooks/${repo.providerType}/${repoId}`,
+          url: webhookUrl,
           events: ["push"],
           secret,
         },

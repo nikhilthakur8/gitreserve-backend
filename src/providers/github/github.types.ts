@@ -37,4 +37,5 @@ export interface GithubWebhook {
 export interface GithubApiError {
   message: string;
   documentation_url?: string;
+  errors?: Array<{ resource?: string; code?: string; message?: string }>;
 }

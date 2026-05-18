@@ -36,6 +36,11 @@ export class GitlabWebhookHandler {
       throw new SyncError("Tracked repository not found", "REPO_NOT_TRACKED");
     }
 
+    if (repo.status === "paused") {
+      logger.info({ trackedRepoId }, "Skipping webhook — repository is paused");
+      return;
+    }
+
     if (repo.webhook.webhookSecret) {
       const token = headers["x-gitlab-token"] as string;
       if (token !== repo.webhook.webhookSecret) {

@@ -62,7 +62,13 @@ export class GithubProvider extends BaseProvider implements GitProvider {
     const raw = await this.client.post<GithubWebhook>(
       `/repos/${owner}/${repo}/hooks`,
       {
-        config: { url: input.url, content_type: "json", secret: input.secret },
+        name: "web",
+        config: {
+          url: input.url,
+          content_type: "json",
+          secret: input.secret,
+          insecure_ssl: "0",
+        },
         events: input.events,
         active: true,
       },

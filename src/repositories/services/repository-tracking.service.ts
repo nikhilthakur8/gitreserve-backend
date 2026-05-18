@@ -1,7 +1,7 @@
 import type { RepositoryRepositoryPort } from "../db/repository.repository.port.ts";
 import type { IntegrationRepositoryPort } from "@/integrations/db/integration.repository.port.ts";
 import type { TrackedRepository } from "../domain/repository.entity.ts";
-import type { TrackRepoDto } from "../dto/repository.dto.ts";
+import type { TrackRepoDto, UpdateTrackedRepoDto } from "../dto/repository.dto.ts";
 import type { ProviderType } from "@/common/types.ts";
 import type { OAuthCredentials } from "@/integrations/domain/integration.types.ts";
 import { createProvider } from "@/providers/provider.factory.ts";
@@ -107,6 +107,20 @@ export class RepositoryTrackingService {
       throw new RepositoryError("Tracked repository not found", "REPO_NOT_FOUND");
     }
     return repo;
+  }
+
+  async update(userId: string, repoId: string, dto: UpdateTrackedRepoDto): Promise<TrackedRepository> {
+    const repo = await this.repoRepo.findById(repoId);
+    if (!repo || repo.userId !== userId) {
+      throw new RepositoryError("Tracked repository not found", "REPO_NOT_FOUND");
+    }
+
+    const updated = await this.repoRepo.update(repoId, {
+      ...(dto.syncMode ? { syncMode: dto.syncMode } : {}),
+      ...(dto.status ? { status: dto.status } : {}),
+    });
+
+    return updated!;
   }
 
   async untrack(userId: string, repoId: string): Promise<void> {

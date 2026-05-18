@@ -13,6 +13,7 @@ export function createIntegrationRouter(repo: IntegrationRepositoryPort): Router
 
   const handle = (fn: ControllerMethod) => asyncHandler(fn.bind(controller));
 
+  router.get("/", handle(controller.list));
   router.get("/oauth/:type/url", handle(controller.getOAuthUrl));
   router.post("/connect/:type", handle(controller.connect));
   router.delete("/:type", handle(controller.disconnect));

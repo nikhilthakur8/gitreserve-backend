@@ -26,6 +26,10 @@ export class RepositorySyncService {
       throw new SyncError("Tracked repository not found", "REPO_NOT_TRACKED");
     }
 
+    if (repo.status === "paused") {
+      throw new SyncError("Repository is paused", "REPO_PAUSED");
+    }
+
     if (repo.status === "syncing") {
       throw new SyncError("Sync already in progress", "SYNC_IN_PROGRESS");
     }

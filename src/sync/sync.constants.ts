@@ -15,4 +15,5 @@ export const SYNC_ERROR_STATUS_MAP: Record<string, number> = {
   INTEGRATION_INACTIVE: 400,
   SYNC_IN_PROGRESS: 409,
   SYNC_JOB_NOT_FOUND: 404,
+  REPO_PAUSED: 409,
 };

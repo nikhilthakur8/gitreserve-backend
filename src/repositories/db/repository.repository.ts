@@ -43,7 +43,7 @@ export class MongoRepositoryRepository implements RepositoryRepositoryPort {
       if (input.webhook.webhookSecret !== undefined) update["webhook.webhookSecret"] = input.webhook.webhookSecret;
     }
 
-    const doc = await TrackedRepoModel.findByIdAndUpdate(id, { $set: update }, { new: true });
+    const doc = await TrackedRepoModel.findByIdAndUpdate(id, { $set: update }, { returnDocument: "after" });
     return doc ? mapDocumentToTrackedRepo(doc) : null;
   }
 

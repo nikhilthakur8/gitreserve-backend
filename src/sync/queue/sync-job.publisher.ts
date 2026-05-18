@@ -13,6 +13,9 @@ export class SyncJobPublisher {
     this.client = new SQSClient({
       region: config.region,
       ...(config.endpoint ? { endpoint: config.endpoint } : {}),
+      ...(config.accessKeyId && config.secretAccessKey
+        ? { credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey } }
+        : {}),
     });
   }
 

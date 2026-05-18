@@ -1,16 +1,19 @@
 import type { Request, Response, NextFunction } from "express";
 import { RepositoryTrackingService } from "./services/repository-tracking.service.ts";
-import { RepositorySyncService } from "./services/repository-sync.service.ts";
 import { RepositoryWebhookService } from "./services/repository-webhook.service.ts";
 import { mapTrackedRepoToResponse } from "./repositories.mapper.ts";
 import { RepositoryError } from "./errors/repository.error.ts";
 import { REPOSITORY_ERROR_STATUS_MAP } from "./repositories.constants.ts";
+import { SyncError } from "@/sync/domain/sync.error.ts";
+import { SYNC_ERROR_STATUS_MAP } from "@/sync/sync.constants.ts";
 import { ApiResponse } from "@/common/api-response.ts";
 import type { AppRequest } from "@/common/async-handler.ts";
 import type { RepositoryRepositoryPort } from "./db/repository.repository.port.ts";
 import type { IntegrationRepositoryPort } from "@/integrations/db/integration.repository.port.ts";
+import type { RepositorySyncService } from "@/sync/services/repository-sync.service.ts";
+import { mapSyncJobToResponse } from "@/sync/sync.mapper.ts";
 import type { ProviderType } from "@/common/types.ts";
-import type { TrackRepoDto } from "./dto/repository.dto.ts";
+import type { TrackRepoDto, UpdateTrackedRepoDto } from "./dto/repository.dto.ts";
 
 export class RepositoryController {
   private readonly trackingService: RepositoryTrackingService;
@@ -21,9 +24,10 @@ export class RepositoryController {
     repoRepo: RepositoryRepositoryPort,
     integrationRepo: IntegrationRepositoryPort,
     webhookBaseUrl: string,
+    syncService: RepositorySyncService,
   ) {
     this.trackingService = new RepositoryTrackingService(repoRepo, integrationRepo);
-    this.syncService = new RepositorySyncService(repoRepo, integrationRepo);
+    this.syncService = syncService;
     this.webhookService = new RepositoryWebhookService(repoRepo, integrationRepo, webhookBaseUrl);
   }
 
@@ -60,6 +64,25 @@ export class RepositoryController {
     return ApiResponse.ok(mapTrackedRepoToResponse(repo));
   }
 
+  async update(req: AppRequest) {
+    const userId = req.userId!;
+    const { repoId } = req.params;
+    const dto = req.body as UpdateTrackedRepoDto;
+
+    const existing = await this.trackingService.getTracked(userId, repoId!);
+
+    if (dto.syncMode && dto.syncMode !== existing.syncMode) {
+      if (dto.syncMode === "webhook") {
+        await this.webhookService.setupWebhook(userId, repoId!);
+      } else if (existing.syncMode === "webhook") {
+        await this.webhookService.removeWebhook(userId, repoId!);
+      }
+    }
+
+    const updated = await this.trackingService.update(userId, repoId!, dto);
+    return ApiResponse.ok(mapTrackedRepoToResponse(updated));
+  }
+
   async untrack(req: AppRequest) {
     const userId = req.userId!;
     const { repoId } = req.params;
@@ -71,13 +94,21 @@ export class RepositoryController {
   async sync(req: AppRequest) {
     const userId = req.userId!;
     const { repoId } = req.params;
-    const repo = await this.syncService.triggerSync(userId, repoId!);
-    return ApiResponse.ok(mapTrackedRepoToResponse(repo));
+    const job = await this.syncService.triggerSync(userId, repoId!, "manual");
+    return ApiResponse.created(mapSyncJobToResponse(job));
   }
 
   handleError = (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
     if (err instanceof RepositoryError) {
       res.status(REPOSITORY_ERROR_STATUS_MAP[err.code] ?? 500).json({
+        error: err.message,
+        code: err.code,
+      });
+      return;
+    }
+
+    if (err instanceof SyncError) {
+      res.status(SYNC_ERROR_STATUS_MAP[err.code] ?? 500).json({
         error: err.message,
         code: err.code,
       });

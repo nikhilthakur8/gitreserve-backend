@@ -64,6 +64,7 @@ export class GitlabProvider extends BaseProvider implements GitProvider {
     input: CreateWebhookInput,
   ): Promise<Webhook> {
     const projectPath = encodeURIComponent(`${owner}/${repo}`);
+    const isHttps = input.url.startsWith("https://");
     const raw = await this.client.post<GitlabWebhook>(
       `/projects/${projectPath}/hooks`,
       {
@@ -72,7 +73,7 @@ export class GitlabProvider extends BaseProvider implements GitProvider {
         push_events: input.events.includes("push"),
         tag_push_events: input.events.includes("tag_push"),
         merge_requests_events: input.events.includes("merge_request"),
-        enable_ssl_verification: true,
+        enable_ssl_verification: isHttps,
       },
     );
     return mapWebhook(raw);

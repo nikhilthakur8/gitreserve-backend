@@ -31,3 +31,8 @@ export interface TrackRepoDto {
   externalRepoId: string;
   syncMode: SyncMode;
 }
+
+export interface UpdateTrackedRepoDto {
+  syncMode?: SyncMode;
+  status?: TrackedRepoStatus;
+}

@@ -37,6 +37,8 @@ async function main() {
     queueUrl: process.env["SQS_QUEUE_URL"] ?? "",
     region: process.env["AWS_REGION"] ?? "us-east-1",
     ...(process.env["SQS_ENDPOINT"] ? { endpoint: process.env["SQS_ENDPOINT"] } : {}),
+    ...(process.env["AWS_ACCESS_KEY_ID"] ? { accessKeyId: process.env["AWS_ACCESS_KEY_ID"] } : {}),
+    ...(process.env["AWS_SECRET_ACCESS_KEY"] ? { secretAccessKey: process.env["AWS_SECRET_ACCESS_KEY"] } : {}),
   };
   const concurrency = parseInt(process.env["CONSUMER_CONCURRENCY"] ?? String(SQS_DEFAULT_CONCURRENCY), 10);
   const consumer = new SyncJobConsumer(sqsConfig, orchestrator, undefined, concurrency);

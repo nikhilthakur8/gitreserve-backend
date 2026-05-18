@@ -27,6 +27,12 @@ export class IntegrationController {
     return createIntegrationHandler(type as IntegrationType, this.repo);
   }
 
+  async list(req: AppRequest) {
+    const userId = req.userId!;
+    const integrations = await this.repo.findMany({ userId });
+    return ApiResponse.ok(integrations.map(mapIntegrationToResponse));
+  }
+
   async getOAuthUrl(req: AppRequest) {
     const handler = this.resolveHandler(req);
     if (!("getAuthorizationUrl" in handler)) {
@@ -78,6 +84,7 @@ export class IntegrationController {
       return;
     }
 
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Unhandled integration error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   };
 }

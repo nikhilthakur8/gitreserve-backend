@@ -15,4 +15,6 @@ export interface SqsConfig {
   queueUrl: string;
   region: string;
   endpoint?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
 }

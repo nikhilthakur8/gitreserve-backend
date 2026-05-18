@@ -57,7 +57,7 @@ export class MongoSyncJobRepository implements SyncJobRepositoryPort {
       update["result.durationMs"] = input.result.durationMs;
     }
 
-    const doc = await SyncJobModel.findByIdAndUpdate(id, { $set: update }, { new: true });
+    const doc = await SyncJobModel.findByIdAndUpdate(id, { $set: update }, { returnDocument: "after" });
     return doc ? mapDocumentToSyncJob(doc) : null;
   }
 

@@ -8,7 +8,8 @@ export type SyncErrorCode =
   | "REPO_NOT_TRACKED"
   | "INTEGRATION_INACTIVE"
   | "SYNC_IN_PROGRESS"
-  | "SYNC_JOB_NOT_FOUND";
+  | "SYNC_JOB_NOT_FOUND"
+  | "REPO_PAUSED";
 
 export class SyncError extends Error {
   constructor(

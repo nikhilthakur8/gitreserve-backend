@@ -30,7 +30,7 @@ export class MongoIntegrationRepository implements IntegrationRepositoryPort {
   }
 
   async update(id: string, input: UpdateIntegrationInput): Promise<Integration | null> {
-    const doc = await IntegrationModel.findByIdAndUpdate(id, { $set: input }, { new: true });
+    const doc = await IntegrationModel.findByIdAndUpdate(id, { $set: input }, { returnDocument: "after" });
     return doc ? mapDocumentToIntegration(doc) : null;
   }
 
