@@ -57,6 +57,8 @@ export class MongoRepositoryRepository implements RepositoryRepositoryPort {
     if (filter.integrationId) query["integrationId"] = filter.integrationId;
     if (filter.storageIntegrationId) query["storageIntegrationId"] = filter.storageIntegrationId;
     if (filter.status) query["status"] = filter.status;
+    if (filter.externalId) query["source.externalId"] = filter.externalId;
+    if (filter.providerType) query["providerType"] = filter.providerType;
     return query;
   }
 }

@@ -66,9 +66,10 @@ export class RepositoryTrackingService {
 
     const existing = await this.repoRepo.findOne({
       userId,
-      integrationId: dto.integrationId,
+      externalId: dto.externalRepoId,
+      providerType,
     });
-    if (existing && existing.source.externalId === dto.externalRepoId) {
+    if (existing) {
       throw new RepositoryError(
         `Repository ${repo.fullName} is already tracked`,
         "REPO_ALREADY_TRACKED",

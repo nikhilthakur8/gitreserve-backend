@@ -28,4 +28,6 @@ export interface TrackedRepoFilter {
   integrationId?: string;
   storageIntegrationId?: string;
   status?: TrackedRepoStatus;
+  externalId?: string;
+  providerType?: string;
 }
