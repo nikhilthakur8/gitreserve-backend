@@ -85,3 +85,4 @@ pnpm format       # Prettier
 - Provider mappers convert raw API types to normalized types from `provider.types.ts`.
 - Use `pino` logger — no `console.log`.
 - Use **Zod** for request validation.
+- Do **not** add `Co-Authored-By` to commit messages.

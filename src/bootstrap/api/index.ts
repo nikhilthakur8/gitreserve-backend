@@ -73,7 +73,8 @@ async function main() {
   app.disable("x-powered-by");
   app.use(helmet());
   app.use(compression());
-  app.use(cors());
+  const allowedOrigins = process.env["CORS_ORIGINS"]?.split(",").map((o) => o.trim()).filter(Boolean);
+  app.use(cors(allowedOrigins?.length ? { origin: allowedOrigins, credentials: true } : undefined));
   app.use(pinoHttp({ logger: createChildLogger("http") }));
 
   // Webhooks must be mounted before express.json() to receive raw body for signature verification
