@@ -12,7 +12,7 @@ import type { AppRequest } from "@/common/async-handler.ts";
 import type { RepositoryRepositoryPort } from "./db/repository.repository.port.ts";
 import type { IntegrationRepositoryPort } from "@/integrations/db/integration.repository.port.ts";
 import type { RepositorySyncService } from "@/sync/services/repository-sync.service.ts";
-import { mapSyncJobToResponse } from "@/sync/sync.mapper.ts";
+
 import type { ProviderType } from "@/common/types.ts";
 import type { TrackRepoDto, UpdateTrackedRepoDto } from "./dto/repository.dto.ts";
 import type { StorageCredentials } from "@/integrations/domain/integration.types.ts";
@@ -51,7 +51,12 @@ export class RepositoryController {
     const tracked = await this.trackingService.track(userId, dto);
 
     if (dto.syncMode === "webhook") {
-      await this.webhookService.setupWebhook(userId, tracked.id);
+      try {
+        await this.webhookService.setupWebhook(userId, tracked.id);
+      } catch (err) {
+        await this.trackingService.untrack(userId, tracked.id);
+        throw err;
+      }
     }
 
     return ApiResponse.created(mapTrackedRepoToResponse(tracked));
@@ -149,8 +154,9 @@ export class RepositoryController {
   async sync(req: AppRequest) {
     const userId = req.userId!;
     const { repoId } = req.params;
-    const job = await this.syncService.triggerSync(userId, repoId!, "manual");
-    return ApiResponse.created(mapSyncJobToResponse(job));
+    await this.syncService.triggerSync(userId, repoId!, "manual");
+    const repo = await this.trackingService.getTracked(userId, repoId!);
+    return ApiResponse.ok(mapTrackedRepoToResponse(repo));
   }
 
   handleError = (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
