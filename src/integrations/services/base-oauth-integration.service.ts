@@ -37,11 +37,15 @@ export abstract class BaseOAuthIntegrationService implements IntegrationHandler 
 
     const existing = await this.repo.findOne({ userId, type: this.providerType });
     if (existing) {
-      throw new IntegrationError(
-        `${this.displayName} is already connected`,
-        this.providerType,
-        "ALREADY_CONNECTED",
-      );
+      if (existing.status === "error") {
+        await this.repo.delete(existing.id);
+      } else {
+        throw new IntegrationError(
+          `${this.displayName} is already connected`,
+          this.providerType,
+          "ALREADY_CONNECTED",
+        );
+      }
     }
 
     const tokenResponse = await this.exchangeCodeForToken(code);
@@ -83,6 +87,10 @@ export abstract class BaseOAuthIntegrationService implements IntegrationHandler 
 
     try {
       await provider.getAuthenticatedUser();
+      if (integration.status !== "active") {
+        const updated = await this.repo.update(integration.id, { status: "active" });
+        return updated ?? integration;
+      }
       return integration;
     } catch (error) {
       await this.repo.update(integration.id, { status: "error" });
