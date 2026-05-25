@@ -10,6 +10,7 @@ import { pinoHttp } from "pino-http";
 import { createChildLogger } from "@/common/logger.ts";
 import { MongoUserRepository } from "@/auth/db/user.repository.ts";
 import { AuthService } from "@/auth/services/auth.service.ts";
+import { OAuthService } from "@/auth/services/oauth.service.ts";
 import { createAuthRouter } from "@/auth/auth.http.router.ts";
 import { authMiddleware } from "@/auth/auth.middleware.ts";
 import { MongoIntegrationRepository } from "@/integrations/db/integration.repository.ts";
@@ -47,6 +48,8 @@ async function main() {
 
   // Auth
   const authService = new AuthService(userRepo, jwtSecret, jwtExpiresIn);
+  const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:5173";
+  const oauthService = new OAuthService(userRepo, authService, frontendUrl);
 
   // SQS Publisher
   const sqsConfig = {
@@ -89,7 +92,7 @@ async function main() {
   });
 
   // Routes
-  app.use("/api/v1/auth", createAuthRouter(authService));
+  app.use("/api/v1/auth", createAuthRouter(authService, oauthService));
   app.use("/api/v1/integrations", authMiddleware(authService), createIntegrationRouter(integrationRepo));
   app.use("/api/v1/repositories", authMiddleware(authService), createRepositoryRouter(repoRepo, integrationRepo, webhookBaseUrl, syncService));
   app.use("/api/v1/sync", authMiddleware(authService), createSyncRouter(syncController));

@@ -44,6 +44,10 @@ export class AuthService {
       throw new AuthError("Invalid email or password", "INVALID_CREDENTIALS");
     }
 
+    if (!user.passwordHash) {
+      throw new AuthError("This account uses OAuth login", "INVALID_CREDENTIALS");
+    }
+
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new AuthError("Invalid email or password", "INVALID_CREDENTIALS");
@@ -72,10 +76,14 @@ export class AuthService {
     }
   }
 
-  private generateTokens(userId: string, email: string): AuthTokens {
+  generateTokensForUser(userId: string, email: string): AuthTokens {
     const accessToken = jwt.sign({ userId, email } satisfies TokenPayload, this.jwtSecret, {
       expiresIn: this.jwtExpiresIn,
     });
     return { accessToken, expiresIn: this.jwtExpiresIn };
+  }
+
+  private generateTokens(userId: string, email: string): AuthTokens {
+    return this.generateTokensForUser(userId, email);
   }
 }
