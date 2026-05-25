@@ -102,6 +102,7 @@ async function main() {
     logger.info({ port }, "API server started");
   });
 
+  
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "Shutdown signal received");
