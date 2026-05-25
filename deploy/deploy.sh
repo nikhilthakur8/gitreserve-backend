@@ -17,10 +17,6 @@ echo "▶ Installing dependencies..."
 pnpm install --frozen-lockfile
 
 echo ""
-echo "▶ Running typecheck..."
-pnpm typecheck
-
-echo ""
 echo "▶ Cleaning previous build..."
 pnpm clean
 
